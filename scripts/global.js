@@ -414,3 +414,72 @@ function validateForm(whichform) {
 	}
 	return true;
 }
+
+//提交表单
+
+// 不同IE版本中使用得XMLHTTP对象不完全相同，使用以下函数兼容所有浏览器
+function getHTTPObject() {
+	if(typeof XMLHttpRequest == "undefined")
+	  XMLHttpRequest = function() {
+		try { return new ActiveXObject("Msxml2.XMLHTTP.6.0");}
+				catch (e) {}
+		try { return new ActiveXObject("Msxml2.XMLHTTP.3.0");}
+			catch (e) {}
+		try { return new ActiveXObject("Msxml2.XMLHTTP");}
+			catch (e) {}
+		return false;
+	}
+	return new XMLHttpRequest();
+}
+
+function displayAjaxLoading(element) {
+	while (element.hasChildNodes()) {
+		element.removeChild(element.lastChild);
+	}
+	var content = document.createElement("img");
+	content.setAttribute("src","images/loading.gif");
+	content.setAttribute("alt","Loading...");
+	element.appendChild(content);
+}
+
+function submitFormWithAjax ( whichform , thetarget ) {
+	var request = getHTTPObject();
+	if (!request) { return false; }
+	displayAjaxLoading(thetarget);
+	var dataParts = [];
+	var element;
+	for (var i=0; i<whichform.elements.length; i++) {
+		element = whichform.elements[i];
+		dataParts[i] = element.name + '=' +encodeURIComponent(element.value);
+	}
+	var data = dataParts.join('&');
+	request.open('POST', whichform.getAttribute("action"), true);
+	request.setRequestHeader("Content-type" , "application/x-www-form-urlencoded");
+	request.onreadystatechange = function() {
+		if(request.readyState == 4) {
+			if(request.status == 200 || request.status == 0) {
+				var matches = request.responseText.match(/<article>([\s\S]+)<\/article>/);
+				if(matches.length > 0) {
+					thetarget.innerHTML = mathes[1];
+				} else {
+					thetarget.innerHTML = '<p>Oops, there was an error. Sorry.</p>'
+				}
+			} else {
+				thetarget.innerHTML = '<p>' + request.statusText + '</p>';
+			}
+		}
+	}
+	request.send(data);
+	return true;
+}
+
+function prepareForms() {
+	for(var i=0; i<document.forms.length; i++) {
+		var thisform = document.forms[i];
+		resetfields(thisform);
+		this.onsubmit = function() {
+			var article = document.getElementsByTagName('article')[0];
+			if(submitFormWithAjax(this,article)) return false;
+		}
+	}
+}
